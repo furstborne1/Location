@@ -7,10 +7,25 @@
 //
 
 import UIKit
+import CoreData
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    
+    lazy var persistentContainer: NSPersistentContainer = {
+          let container = NSPersistentContainer(name: "DataModel")
+          container.loadPersistentStores {(storeDescription, error) in
+              if let error = error {
+                  fatalError("could not load\(error)")
+              }
+          }
+          return container
+      }()
+      
+      lazy var managedObjectContext: NSManagedObjectContext = {
+          return persistentContainer.viewContext
+      }()
 
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
@@ -18,6 +33,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
+        
+        let tabController = window!.rootViewController as! UITabBarController
+        if let tabBarController = tabController.viewControllers {
+            var navController = tabBarController[0] as! UINavigationController
+            let controller = navController.viewControllers.first as! CurrentLocationVC
+            controller.managedObjectContext = managedObjectContext
+            /// -2
+            navController = tabBarController[1] as! UINavigationController
+            let controller1 = navController.viewControllers.first as! LocationsViewController
+            controller1.managedObjectContext = managedObjectContext
+            /// -3
+        }
+        
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -50,6 +78,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Save changes in the application's managed object context when the application transitions to the background.
         (UIApplication.shared.delegate as? AppDelegate)?.saveContext()
     }
+    
+    //MARK: listen fo coredata error
+     func listenForFatalErrorCoreData() {
+         NotificationCenter.default.addObserver(forName: coreDateSaveFail, object: nil, queue: OperationQueue.main) { (notification) in
+             let message = """
+             There was a fatal error in the app and it cannot continue.
+             Press OK to terminate the app. Sorry for the inconvenience.
+             """
+             
+             let alert = UIAlertController(title: "Internal Error", message: message, preferredStyle: .actionSheet)
+             let action = UIAlertAction(title: "Ok", style: .default) { _ in
+                 let exception = NSException(name: NSExceptionName.internalInconsistencyException, reason: "Core Data Error", userInfo: nil)
+                 exception.raise()
+             }
+             alert.addAction(action)
+            let tabController = self.window!.rootViewController!
+            tabController.present(alert, animated: true, completion: nil)
+         }
+     }
 
 
 }
