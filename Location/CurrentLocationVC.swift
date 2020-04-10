@@ -10,7 +10,7 @@ import UIKit
 import CoreLocation
 import CoreData
 
-class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
+class CurrentLocationVC: UIViewController, CLLocationManagerDelegate, CAAnimationDelegate {
     
     //MARK:- OUTLETS
     @IBOutlet weak var messageLabel: UILabel!
@@ -19,6 +19,7 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
     @IBOutlet weak var addressLabel: UILabel!
     @IBOutlet weak var tagButton: UIButton!
     @IBOutlet weak var getButton: UIButton!
+    @IBOutlet weak var containerView: UIView!
     
     //MARK:- GEOCODING VARIABLE
     let geoCoder = CLGeocoder()
@@ -26,6 +27,17 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
     var performReverseGeoCoding = false
     var lastGeoCodingError: Error?
     var managedObjectContext: NSManagedObjectContext!
+    var isLogoVisible = false
+    
+    lazy var logoButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setBackgroundImage(UIImage(named: "Logo"), for: .normal)
+        button.sizeToFit()
+        button.addTarget(self, action: #selector(getLocation), for: .touchUpInside)
+        button.center.x = self.view.bounds.midX
+        button.center.y = 220
+        return button
+    }()
     
     //MARK:- LOCATION MANAGER VARIABLE
     let LocationManager = CLLocationManager()
@@ -133,6 +145,8 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
             latitudeLabel.text = "Latitude: \(String(format: "%.8f", location.coordinate.latitude))"
             longitudeLabel.text = "Longitude: \(String(format: "%.8f", location.coordinate.longitude))"
             configureGetButton()
+            latitudeLabel.isHidden = false
+            longitudeLabel.isHidden = false
             if let placeMark = placeMark {
                 addressLabel.text = string(from: placeMark)
             } else if performReverseGeoCoding {
@@ -142,8 +156,10 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
             } else {
                 addressLabel.text = "No Address Found"
             }
+        } else {
+            latitudeLabel.isHidden = true
+            longitudeLabel.isHidden = true
         }
-        
         var errorMessage: String
         if let error = lastLocationError as NSError? {
             if error.domain == kCLErrorDomain && error.code == CLError.denied.rawValue {
@@ -156,7 +172,8 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
         } else if updatingLocation {
             errorMessage = "Searching...."
         } else {
-            errorMessage = "Tap to get my location to start"
+            errorMessage = ""
+            showLogoView()
         }
         messageLabel.text = errorMessage
     }
@@ -182,6 +199,10 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
             lastGeoCodingError = nil
             startLocationManager()
         }
+        
+        if isLogoVisible {
+            hideLogoView()
+        }
     }
     
     func getLocationApproval() {
@@ -193,6 +214,61 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
             LocationManager.requestWhenInUseAuthorization()
             return
         }
+    }
+    
+    //MARK: this func show Logo
+    func showLogoView() {
+        if !isLogoVisible {
+            isLogoVisible = true
+            containerView.isHidden = true
+            view.addSubview(logoButton)
+        }
+    }
+    
+    //MARK:- this function hides logo
+    func hideLogoView() {
+        if !isLogoVisible { return }
+        containerView.isHidden = false
+        containerView.center.x = view.bounds.size.width * 2
+        containerView.center.y = 40 + containerView.bounds.size.height / 2
+        let centerX = view.bounds.midX
+        let panelMover = CABasicAnimation(keyPath: "position")
+        panelMover.isRemovedOnCompletion = false
+        panelMover.fillMode = CAMediaTimingFillMode.forwards
+        panelMover.duration = 0.6
+        panelMover.fromValue = NSValue(cgPoint: containerView.center)
+        panelMover.toValue = NSValue(cgPoint: CGPoint(x: centerX, y: containerView.center.y))
+        panelMover.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeOut)
+        panelMover.delegate = self
+        containerView.layer.add(panelMover, forKey: "panelMover")
+        let logoMover = CABasicAnimation(keyPath: "position")
+        logoMover.isRemovedOnCompletion = false
+        logoMover.fillMode = CAMediaTimingFillMode.forwards
+        logoMover.duration = 0.5
+        logoMover.fromValue = NSValue(cgPoint: logoButton.center)
+        logoMover.toValue = NSValue(cgPoint:
+        CGPoint(x: -centerX, y: logoButton.center.y))
+        logoMover.timingFunction = CAMediaTimingFunction(
+        name: CAMediaTimingFunctionName.easeIn)
+        logoButton.layer.add(logoMover, forKey: "logoMover")
+        let logoRotator = CABasicAnimation(keyPath: "transform.rotation.z")
+        logoRotator.isRemovedOnCompletion = false
+        logoRotator.fillMode = CAMediaTimingFillMode.forwards
+        logoRotator.duration = 0.5
+        logoRotator.fromValue = 0.0
+        logoRotator.toValue = -2 * Double.pi
+        logoRotator.timingFunction = CAMediaTimingFunction(
+        name: CAMediaTimingFunctionName.easeIn)
+        logoButton.layer.add(logoRotator, forKey: "logoRotator")
+    }
+    
+    /// animation delegate
+    func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+        containerView.layer.removeAllAnimations()
+        containerView.center.x = view.bounds.size.width / 2
+        containerView.center.y = 40 + containerView.bounds.size.height / 2
+        logoButton.layer.removeAllAnimations()
+        logoButton.removeFromSuperview()
     }
     
     func showLocationserviceDenied() {
