@@ -154,7 +154,7 @@ class CurrentLocationVC: UIViewController, CLLocationManagerDelegate {
         } else if !CLLocationManager.locationServicesEnabled() {
             errorMessage = "Location Services Disabled"
         } else if updatingLocation {
-            errorMessage = "Searching"
+            errorMessage = "Searching...."
         } else {
             errorMessage = "Tap to get my location to start"
         }

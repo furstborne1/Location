@@ -12,6 +12,19 @@ class LocationCell: UITableViewCell {
 
     @IBOutlet weak var descriptionLbl: UILabel!
     @IBOutlet weak var addressLbl: UILabel!
+    @IBOutlet weak var imgView: UIImageView!
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        let selection = UIView(frame: CGRect.zero)
+        selection.backgroundColor = UIColor(white: 1.0, alpha: 0.3)
+        selectedBackgroundView = selection
+        
+        imgView.layer.cornerRadius = imgView.bounds.size.width / 2
+        imgView.clipsToBounds = true
+        separatorInset = UIEdgeInsets(top: 0, left: 82, bottom: 0,
+        right: 0)
+    }
 
     // MARK:- Helper Method
     func configure(for location: Location) {
@@ -35,5 +48,13 @@ class LocationCell: UITableViewCell {
         } else {
             addressLbl.text = String(format: "Lat: %.8f, Long: %.8f", location.latitude, location.longitude)
         }
+        imageView?.image = thumbnail(for: location)
+    }
+    
+    func thumbnail(for locations: Location) -> UIImage {
+        if locations.hasPhoto, let image = locations.photoImage {
+            return image.resize(withBounds: CGSize(width: 52, height: 52))
+        }
+        return UIImage(named: "No Photo")!
     }
 }

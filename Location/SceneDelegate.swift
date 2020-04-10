@@ -43,7 +43,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             navController = tabBarController[1] as! UINavigationController
             let controller1 = navController.viewControllers.first as! LocationsViewController
             controller1.managedObjectContext = managedObjectContext
+            let _ = controller1.view
             /// -3
+            navController = tabBarController[2] as! UINavigationController
+            let controller2 = navController.viewControllers.first as! MapViewController
+            controller2.managedObjectContext = managedObjectContext
         }
         
     }
